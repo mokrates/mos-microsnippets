@@ -48,7 +48,7 @@
         (count 0))
     (while (> (length tmp) (length count-marker))
       (if (string-prefix-p count-marker tmp)
-          (incf count))
+          (setq count (+ 1 count)))
       (setq tmp (substring tmp 1 nil)))
     count))
 
@@ -82,7 +82,7 @@ With '@' as jump-marker, @[123]-like fields will automatically incremented by mm
       (mms--increment-number-decimal mms-increment-counter)
       (search-forward "]")
       (backward-delete-char 1))
-    (incf mms-increment-counter)
+    (setq mms-increment-counter (+ 1 mms-increment-counter))
     
     ;; editing edit-fields
     (goto-char p)
