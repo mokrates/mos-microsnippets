@@ -48,7 +48,7 @@
         (count 0))
     (while (> (length tmp) (length count-marker))
       (if (string-prefix-p count-marker tmp)
-          (incf count))
+          (setq count (+ 1 count)))
       (setq tmp (substring tmp 1 nil)))
     count))
 
