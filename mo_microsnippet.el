@@ -64,35 +64,36 @@ With '@' as jump-marker, @[123]-like fields will automatically incremented by mm
   (deactivate-mark)
   (setq mms-increment-counter 0))
 
-(defun mms-insert-snippet ()
-  (interactive)
-  (let ((count-marker (concat mms-jump-marker "["))
-        (edit-marker (concat mms-jump-marker "("))
-        (p (point))
-        (end-marker nil)
-        (field-name))
-    (insert mms-the-snippet)
-    (setq end-marker (point-marker))
-    
-    ;; incrementing numbers
-    (goto-char p)
-    (dotimes (number (mms--count-marker) nil)
-      (search-forward count-marker)
-      (backward-delete-char (length count-marker))
-      (mms--increment-number-decimal mms-increment-counter)
-      (search-forward "]")
-      (backward-delete-char 1))
-    (setq mms-increment-counter (+ 1 mms-increment-counter))
-    
-    ;; editing edit-fields
-    (goto-char p)
-    (while (and (< (point) end-marker)
-                (search-forward edit-marker end-marker 'not-nil-and-not-t))
-      (backward-delete-char (length edit-marker))
-      (save-mark-and-excursion
-       (set-mark (point))
-       (search-forward ")")
-       (setq field-name (buffer-substring-no-properties (mark) (- (point) 1)))
-       (delete-region (mark) (point)))
-
-      (insert (read-from-minibuffer "Field: " field-name)))))
+(defun mms-insert-snippet (p)
+  (interactive "p")
+  (dotimes (n p nil)
+    (let ((count-marker (concat mms-jump-marker "["))
+          (edit-marker (concat mms-jump-marker "("))
+          (p (point))
+          (end-marker nil)
+          (field-name))
+      (insert mms-the-snippet)
+      (setq end-marker (point-marker))
+      
+      ;; incrementing numbers
+      (goto-char p)
+      (dotimes (number (mms--count-marker) nil)
+	(search-forward count-marker)
+	(backward-delete-char (length count-marker))
+	(mms--increment-number-decimal mms-increment-counter)
+	(search-forward "]")
+	(backward-delete-char 1))
+      (setq mms-increment-counter (+ 1 mms-increment-counter))
+      
+      ;; editing edit-fields
+      (goto-char p)
+      (while (and (< (point) end-marker)
+                  (search-forward edit-marker end-marker 'not-nil-and-not-t))
+	(backward-delete-char (length edit-marker))
+	(save-mark-and-excursion
+	  (set-mark (point))
+	  (search-forward ")")
+	  (setq field-name (buffer-substring-no-properties (mark) (- (point) 1)))
+	  (delete-region (mark) (point)))
+	
+	(insert (read-from-minibuffer "Field: " field-name))))))
