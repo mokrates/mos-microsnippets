@@ -96,4 +96,4 @@ With '@' as jump-marker, @[123]-like fields will automatically incremented by mm
 	  (setq field-name (buffer-substring-no-properties (mark) (- (point) 1)))
 	  (delete-region (mark) (point)))
 	
-	(insert (read-from-minibuffer "Field: " field-name))))))
+	(insert (read-from-minibuffer (concat field-name ": ")))))))
