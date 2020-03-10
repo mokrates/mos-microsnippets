@@ -56,7 +56,8 @@
   "This function copies the region into the mms snippet clipboard (variable mms-the-snippet)
 If called with prefix argument asks for a new jump marker
 With '@' as jump-marker, @[123]-like fields will automatically incremented by mms-insert-snippet and
-@(foo) are fields which have to be filled in when pasting the snippet"
+@{foo} are fields which have to be filled in when pasting the snippet
+@{foo|(+ 3 input)} inserts the result of (+ 3 input)" 
   (interactive "P\nr")
   (if p
       (setq mms-jump-marker (read-from-minibuffer "Set new jumpmarker: " mms-jump-marker)))
@@ -68,7 +69,7 @@ With '@' as jump-marker, @[123]-like fields will automatically incremented by mm
   (interactive "p")
   (dotimes (n p nil)
     (let ((count-marker (concat mms-jump-marker "["))
-          (edit-marker (concat mms-jump-marker "("))
+          (edit-marker (concat mms-jump-marker "{"))
           (p (point))
           (end-marker nil)
           (field-name))
@@ -92,8 +93,13 @@ With '@' as jump-marker, @[123]-like fields will automatically incremented by mm
 	(backward-delete-char (length edit-marker))
 	(save-mark-and-excursion
 	  (set-mark (point))
-	  (search-forward ")")
+	  (search-forward "}")
 	  (setq field-name (buffer-substring-no-properties (mark) (- (point) 1)))
 	  (delete-region (mark) (point)))
-	
-	(insert (read-from-minibuffer (concat field-name ": ")))))))
+
+        (if (string-match-p "|" field-name)
+            (progn
+              (string-match "\\([^|]*\\)|\\(.*\\)$" field-name)
+              (let ((input (read-from-minibuffer (concat (match-string 1 field-name) ": "))))
+                (insert (eval (car (read-from-string (match-string 2 field-name)))))))
+          (insert (read-from-minibuffer (concat field-name ": "))))))))
