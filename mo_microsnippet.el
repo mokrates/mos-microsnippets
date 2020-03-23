@@ -9,13 +9,18 @@
 ;; (load "~/.emacs.d/mo_microsnippet.el")  ;; to load this file (adjust the path if needed)
 ;; (global-set-key (kbd "C-= w") 'mms-copy-region)     ;; I like C-= as prefix key
 ;; (global-set-key (kbd "C-= y") 'mms-insert-snippet)
+;; (global-set-key (kbd "C-= Y") 'mms-insert-snippet-over-region)
 ;;;;;;;;;;;;;;;;;;;;
 
 ;; create simple snippets
-;; @(...)-parts, you can jump to with [TAB]
-;; @[012]-parts will automatically counted up
+;; @{...}-parts, you can jump to with [TAB]
+;; @[012]-parts will automatically be counted up
 ;; you can use $() or %() or whatever by changing "mms-jump-marker"
 
+;; "smart" substitutions: @{foo|(downcase input)}
+
+;; overpastes a region with mms-insert-snippet-over-region:
+;; @{0},@{1},etc will be substituted with the nth word in the region.
 
 (defcustom mms-jump-marker "@"
   "This is the mms jump marker with which to mark fields in mms-snippets")
@@ -57,7 +62,7 @@
 If called with prefix argument asks for a new jump marker
 With '@' as jump-marker, @[123]-like fields will automatically incremented by mms-insert-snippet and
 @{foo} are fields which have to be filled in when pasting the snippet
-@{foo|(+ 3 input)} inserts the result of (+ 3 input)" 
+@{foo|(downcase input)} inserts the result of (downcase input)" 
   (interactive "P\nr")
   (if p
       (setq mms-jump-marker (read-from-minibuffer "Set new jumpmarker: " mms-jump-marker)))
@@ -103,3 +108,47 @@ With '@' as jump-marker, @[123]-like fields will automatically incremented by mm
               (let ((input (read-from-minibuffer (concat (match-string 1 field-name) ": "))))
                 (insert (eval (car (read-from-string (match-string 2 field-name)))))))
           (insert (read-from-minibuffer (concat field-name ": "))))))))
+
+(defun mms-insert-snippet-over-region (beg end)
+  "@{0},@{1},etc will be substituted with the nth word in the region."
+  (interactive "r")
+  (when (> (point) beg)
+    (exchange-point-and-mark))
+  (let ((count-marker (concat mms-jump-marker "["))
+        (edit-marker (concat mms-jump-marker "{"))
+        (p (point))
+        (end-marker nil)
+        (field-name)
+        (input-string (buffer-substring-no-properties beg end))
+        (input-list nil))
+    (delete-region beg end)
+    (insert mms-the-snippet)
+    (setq end-marker (point-marker))
+    (setq input-list (split-string input-string))
+    
+    ;; incrementing numbers
+    (goto-char p)
+    (dotimes (number (mms--count-marker) nil)
+      (search-forward count-marker)
+      (backward-delete-char (length count-marker))
+      (mms--increment-number-decimal mms-increment-counter)
+      (search-forward "]")
+      (backward-delete-char 1))
+    (setq mms-increment-counter (+ 1 mms-increment-counter))
+    
+    ;; editing edit-fields
+    (goto-char p)
+    (while (and (< (point) end-marker)
+                (search-forward edit-marker end-marker 'not-nil-and-not-t))
+      (backward-delete-char (length edit-marker))
+      (save-mark-and-excursion
+        (set-mark (point))
+        (search-forward "}")
+        (setq field-name (buffer-substring-no-properties (mark) (- (point) 1)))
+        (delete-region (mark) (point)))
+      (if (string-match-p "|" field-name)
+          (progn
+            (string-match "\\([^|]*\\)|\\(.*\\)$" field-name)
+            (let ((input (nth (string-to-number (match-string 1 field-name)) input-list)))
+              (insert (eval (car (read-from-string (match-string 2 field-name)))))))
+        (insert (nth (string-to-number field-name) input-list))))))
