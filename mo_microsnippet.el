@@ -72,42 +72,51 @@ With '@' as jump-marker, @[123]-like fields will automatically incremented by mm
 
 (defun mms-insert-snippet (p)
   (interactive "p")
+
   (dotimes (n p nil)
-    (let ((count-marker (concat mms-jump-marker "["))
-          (edit-marker (concat mms-jump-marker "{"))
-          (p (point))
-          (end-marker nil)
-          (field-name))
+    (let* ((count-marker (concat mms-jump-marker "["))
+           (edit-marker (concat mms-jump-marker "{"))
+           (p (point))
+           (end-marker nil)
+           (field-name)
+           (field-alist ())
+           (get-field (lambda (field-name)
+                        (unless (alist-get field-name field-alist nil nil #'equal)
+                          (setf field-alist
+                                (put-alist field-name
+                                           (read-from-minibuffer (concat field-name ": "))
+                                           field-alist)))
+                        (alist-get field-name field-alist nil nil #'equal))))
       (insert mms-the-snippet)
-      (setq end-marker (point-marker))
-      
+      (setf end-marker (point-marker))
+        
       ;; incrementing numbers
       (goto-char p)
       (dotimes (number (mms--count-marker) nil)
-	(search-forward count-marker)
-	(backward-delete-char (length count-marker))
-	(mms--increment-number-decimal mms-increment-counter)
-	(search-forward "]")
-	(backward-delete-char 1))
-      (setq mms-increment-counter (+ 1 mms-increment-counter))
-      
+        (search-forward count-marker)
+        (backward-delete-char (length count-marker))
+        (mms--increment-number-decimal mms-increment-counter)
+        (search-forward "]")
+        (backward-delete-char 1))
+      (setf mms-increment-counter (+ 1 mms-increment-counter))
+        
       ;; editing edit-fields
       (goto-char p)
       (while (and (< (point) end-marker)
                   (search-forward edit-marker end-marker 'not-nil-and-not-t))
-	(backward-delete-char (length edit-marker))
-	(save-mark-and-excursion
-	  (set-mark (point))
-	  (search-forward "}")
-	  (setq field-name (buffer-substring-no-properties (mark) (- (point) 1)))
-	  (delete-region (mark) (point)))
-
+        (backward-delete-char (length edit-marker))
+        (save-mark-and-excursion
+          (set-mark (point))
+          (search-forward "}")
+          (setf field-name (buffer-substring-no-properties (mark) (- (point) 1)))
+          (delete-region (mark) (point)))
+        
         (if (string-match-p "|" field-name)
-            (progn
+            (save-match-data
               (string-match "\\([^|]*\\)|\\(.*\\)$" field-name)
-              (let ((input (read-from-minibuffer (concat (match-string 1 field-name) ": "))))
+              (let ((input (funcall get-field (match-string 1 field-name))))
                 (insert (eval (car (read-from-string (match-string 2 field-name)))))))
-          (insert (read-from-minibuffer (concat field-name ": "))))))))
+          (insert (funcall get-field field-name)))))))
 
 (defun mms-insert-snippet-over-region (beg end)
   "@{0},@{1},etc will be substituted with the nth word in the region."
@@ -123,8 +132,8 @@ With '@' as jump-marker, @[123]-like fields will automatically incremented by mm
         (input-list nil))
     (delete-region beg end)
     (insert mms-the-snippet)
-    (setq end-marker (point-marker))
-    (setq input-list (split-string input-string))
+    (setf end-marker (point-marker))
+    (setf input-list (split-string input-string))
     
     ;; incrementing numbers
     (goto-char p)
@@ -134,7 +143,7 @@ With '@' as jump-marker, @[123]-like fields will automatically incremented by mm
       (mms--increment-number-decimal mms-increment-counter)
       (search-forward "]")
       (backward-delete-char 1))
-    (setq mms-increment-counter (+ 1 mms-increment-counter))
+    (setf mms-increment-counter (+ 1 mms-increment-counter))
     
     ;; editing edit-fields
     (goto-char p)
@@ -144,7 +153,7 @@ With '@' as jump-marker, @[123]-like fields will automatically incremented by mm
       (save-mark-and-excursion
         (set-mark (point))
         (search-forward "}")
-        (setq field-name (buffer-substring-no-properties (mark) (- (point) 1)))
+        (setf field-name (buffer-substring-no-properties (mark) (- (point) 1)))
         (delete-region (mark) (point)))
       (if (string-match-p "|" field-name)
           (progn
