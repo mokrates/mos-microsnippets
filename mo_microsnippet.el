@@ -81,12 +81,12 @@ With '@' as jump-marker, @[123]-like fields will automatically incremented by mm
            (field-name)
            (field-alist ())
            (get-field (lambda (field-name)
-                        (unless (alist-get field-name field-alist nil nil #'equal)
+                        (unless (assoc field-name field-alist)
                           (setf field-alist
                                 (put-alist field-name
                                            (read-from-minibuffer (concat field-name ": "))
                                            field-alist)))
-                        (alist-get field-name field-alist nil nil #'equal))))
+                        (cdr (assoc field-name field-alist)))))
       (insert mms-the-snippet)
       (setf end-marker (point-marker))
         
